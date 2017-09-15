@@ -1,0 +1,32 @@
+digraph entities{
+	rankdir=LR;
+
+	{
+		node [shape=box];
+		Device;
+		Account;
+		Player;
+		Match;
+		Queue;
+		{
+			rank=same;
+			Account;
+			Queue;
+		}
+	}
+
+	Device->token[label=hold];
+	token->score[label=store];
+	token->name[label=store];
+	token->metadata[label=store];
+	token->Account[label=construct];
+	Account->Player[label=know];
+	Queue->Account[label=collect];
+	Match->Player[label=instantiate];
+	Queue->Match[label=instantiate];
+	Match->Player[label=inform];
+	Player->Match[label=interact];
+	Player->Account[label=inform];
+	Account->Device[label=update];
+	Device->Player[label=moves];
+}

@@ -1,0 +1,9 @@
+digraph structs{
+	rankdir=LR;
+	account -> player;
+	player -> account;
+	player -> match;
+	match -> player;
+	match -> player;
+	queue -> account;
+}

@@ -1,0 +1,10 @@
+digraph matchfsa{
+	bluffing;
+	betting;
+	start->bluffing;
+	bluffing->bluffing;
+	bluffing->betting;
+	betting->betting;
+	betting->bluffing;
+	betting->end;
+}
