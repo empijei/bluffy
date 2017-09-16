@@ -2,24 +2,26 @@ package bluffy
 
 import "errors"
 
-var QueueFullError = errors.New("Queue is full")
+var (
+	e_queueFull   = errors.New("Queue is full")
+	e_queueClosed = errors.New("Queue is closed")
+	e_nilAccount  = errors.New("Cannot add nil account to Queue")
+)
 
-var QueueClosedError = errors.New("Queue is closed")
-
-type Queue struct {
-	q chan *Account
+type queue struct {
+	q chan *account
 
 	done chan struct{}
 }
 
-func NewQueue(maxsize int) *Queue {
-	return &Queue{
-		q:    make(chan *Account, maxsize),
+func newQueue(maxsize int) *queue {
+	return &queue{
+		q:    make(chan *account, maxsize),
 		done: make(chan struct{}, 2),
 	}
 }
 
-func (q *Queue) Run() {
+func (q *queue) run() {
 	for {
 		a1, a2 := <-q.q, <-q.q
 		if a1 != nil && a2 != nil {
@@ -31,23 +33,26 @@ func (q *Queue) Run() {
 	}
 }
 
-func (q *Queue) Close() {
+func (q *queue) close() {
 	//TODO can channel operations be reordered by the compiler?
 	close(q.done)
 	close(q.q)
 }
 
-func (q *Queue) Enqueue(a *Account) error {
+func (q *queue) enqueue(a *account) error {
+	if a == nil {
+		return e_nilAccount
+	}
 	select {
 	case <-q.done:
-		return QueueClosedError
+		return e_queueClosed
 	default:
-		select {
-		case q.q <- a:
-			//account enqueued successfully
-		default:
-			return QueueFullError
-		}
+	}
+	select {
+	case q.q <- a:
+		//TODO account enqueued successfully
+	default:
+		return e_queueFull
 	}
 	return nil
 }

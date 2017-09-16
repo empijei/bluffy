@@ -20,7 +20,7 @@ func (r role) String() string {
 
 type player struct {
 	id uint
-	*Account
+	*account
 	*match
 	role
 	points
@@ -39,7 +39,7 @@ func fight(ps []*player) {
 		def = p
 	}
 	if atk == nil || def == nil {
-		//TODO also check this on creation?
+		//this should never happen
 		panic("Wrong roles in players of a match")
 	}
 	ap, dp := attackSuit(atk.pick, def.pick)

@@ -1,6 +1,7 @@
 package bluffy
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -11,8 +12,8 @@ import (
 type action uint
 
 const (
-	a_declare action = iota
-	a_decide
+	a_bluff action = iota
+	a_pick
 	a_win
 	a_disconnect
 )
@@ -58,24 +59,24 @@ type match struct {
 	sync.Mutex
 	//keeps count of moves in a state
 	movecounter int
+	//err is used to keep track of errors
+	err error
 }
 
-//TODO pick an attacker
-
-func newMatch(a1 *Account, a2 *Account) *match {
+func newMatch(a1 *account, a2 *account) *match {
 	shift := rand.Int() % 2
 	i, j := shift%2, (shift+1)%2
 	m := &match{}
 	p1 := &player{
 		id:      uint(i),
-		Account: a1,
+		account: a1,
 		match:   m,
 		role:    r_attacker,
 	}
 	a1.p = p1
 	p2 := &player{
 		id:      uint(j),
-		Account: a2,
+		account: a2,
 		match:   m,
 		role:    r_defender,
 	}
@@ -87,24 +88,33 @@ func newMatch(a1 *Account, a2 *Account) *match {
 	return m
 }
 
-func (m *match) advance(pa playeraction) {
+func (m *match) advance(pa playeraction) error {
 	m.Lock()
 	defer m.Unlock()
 	if m.state == nil {
-		return
+		return matchHasEnded
 	}
 	if pa.action == a_disconnect {
 		m.state = endMatchState
 	}
 	m.state = m.state(m, pa)
+	if m.err != nil {
+		err := m.err
+		m.err = nil
+		return err
+	}
+	return nil
 }
 
 //type representing the state of a match
 type state func(*match, playeraction) state
 
+var invalidAction = errors.New("Invalid action")
+var matchHasEnded = errors.New("matchHasEnded")
+
 func bluffState(m *match, pa playeraction) state {
-	if pa.action != a_declare {
-		//TODO Invalid action
+	if pa.action != a_bluff {
+		m.err = invalidAction
 		return bluffState
 	}
 	switch {
@@ -118,14 +128,14 @@ func bluffState(m *match, pa playeraction) state {
 		//TODO notify players
 		return betState
 	default:
-		//TODO invalid move
+		m.err = invalidAction
 		return bluffState
 	}
 }
 
 func betState(m *match, pa playeraction) state {
-	if pa.action != a_decide {
-		//TODO invalid action
+	if pa.action != a_pick {
+		m.err = invalidAction
 		return betState
 	}
 	switch {
@@ -148,7 +158,7 @@ func betState(m *match, pa playeraction) state {
 		m.movecounter = 0
 		return bluffState
 	default:
-		//TODO invalid action
+		m.err = invalidAction
 		return betState
 	}
 }

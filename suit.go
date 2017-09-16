@@ -1,5 +1,10 @@
 package bluffy
 
+import (
+	"errors"
+	"strconv"
+)
+
 //suit is a playable in-game suite
 type suit int
 
@@ -23,6 +28,15 @@ func (s suit) String() string {
 		"Pikes",   //Picche
 	}
 	return suits[s]
+}
+
+func parseSuit(ss string) (s suit, err error) {
+	i, err := strconv.Atoi(ss)
+	s = suit(i)
+	if s < s_hearts || s > s_pikes {
+		return 0, errors.New("Unknown suit")
+	}
+	return
 }
 
 func attackSuit(a, d suit) (ap, sf points) {
