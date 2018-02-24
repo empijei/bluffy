@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -20,12 +19,13 @@ var q = newQueue(1000)
 
 //TODO implement inactivity kick/disconnect
 
-func Serve() {
-	port := os.Getenv("PORT")
+func Serve(port, authSecret string) {
+	//port := os.Getenv("PORT")
+	//if port == "" {
+	//log.Fatal("$PORT must be set")
+	//}
 
-	if port == "" {
-		log.Fatal("$PORT must be set")
-	}
+	secret = authSecret
 
 	http.HandleFunc("/enqueue", auth(enqueue))
 	http.HandleFunc("/bluff", auth(bluff))
@@ -33,15 +33,25 @@ func Serve() {
 	http.HandleFunc("/pushback", auth(pushback))
 	http.HandleFunc("/register", register)
 
-	_ = http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(":"+port, nil)
+	log.Fatal(err)
 }
 
 func auth(f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		t, err := preparse(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		serTok := r.Header.Get(k_token)
+		if serTok == "" {
+			writeError(w, e_unauthorized, http.StatusUnauthorized)
+			return
+		}
+		t, err := deserializeToken(serTok)
 		if err != nil {
-			writeError(w, err, http.StatusUnauthorized)
+			log.Println(err)
+			writeError(w, e_unauthorized, http.StatusUnauthorized)
+			return
+		}
+		if !t.isValid() {
+			writeError(w, e_unauthorized, http.StatusUnauthorized)
 			return
 		}
 		c := context.WithValue(r.Context(), c_token, t)
@@ -157,25 +167,6 @@ func processAction(r *http.Request) (a *account, s suit, err error) {
 		return
 	}
 	a, err = findAccount(t.uid())
-	return
-}
-
-func preparse(r *http.Request) (t *token, err error) {
-	serTok := r.Header.Get(k_token)
-	if serTok == "" {
-		err = e_unauthorized
-		return
-	}
-	t, err = deserializeToken(serTok)
-	if err != nil {
-		log.Println(err)
-		err = e_unauthorized
-		return
-	}
-	if !t.isValid() {
-		err = e_unauthorized
-		return
-	}
 	return
 }
 

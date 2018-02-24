@@ -40,7 +40,7 @@ func (m *message) send(w io.Writer) error {
 	return err
 }
 
-const secret = "you should never hardcode secretes in sources"
+var secret = "you should never hardcode secrets in sources"
 
 type token struct {
 	Nam string
